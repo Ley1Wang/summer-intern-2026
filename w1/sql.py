@@ -1,3 +1,4 @@
+import json
 class MySqlHelper:
     def __init__(self):
         self.default_number = 0
@@ -58,3 +59,12 @@ class MySqlHelper:
             if row[col] == value:
                 result.append(row)
         return result
+    
+
+    def SAVE(self, filename):
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(self.table, f, ensure_ascii=False, indent=4)
+
+    def LOAD(self, filename):
+        with open(filename, "r", encoding="utf-8") as f:
+            self.table = json.load(f)
