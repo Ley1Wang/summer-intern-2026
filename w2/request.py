@@ -10,9 +10,11 @@ headers = {
 
 response = requests.get(url, headers=headers, timeout=10)
 response.raise_for_status()
+
 soup = BeautifulSoup(response.text, "html.parser")
+
 baidu_table = MySqlHelper()
-baidu_table.CREATE("rank", "title", "desc", "hot")
+baidu_table.CREATE("title", "desc", "hot")
 
 articles = soup.find_all("div", class_="c-single-text-ellipsis")
 print("articles数量:", len(articles))
@@ -21,7 +23,7 @@ for rank, article in enumerate(articles, start=1):
     title = article.get_text(strip=True)
 
     if title:
-        baidu_table.INSERT(rank, title, "", "")
+        baidu_table.INSERT(title, "", "")
 
 baidu_table.SAVE("baidu_hot.json")
 
