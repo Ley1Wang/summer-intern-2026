@@ -17,9 +17,12 @@ baidu_table = MySqlHelper()
 baidu_table.CREATE("title","url", "desc", "hot")
 
 articles = soup.find_all("div", class_="c-single-text-ellipsis")
-print("articles数量:", len(articles))
+items = soup.select('div[class*="category-wrap_"]')
 
-for desc_tag,hot_tag, article in enumerate(articles, start=1):
+for item in items:
+    article = item.select_one(".c-single-text-ellipsis")
+    desc_tag = item.select_one('[class*="hot-desc_"]')
+    hot_tag = item.select_one('[class*="hot-index_"]')
     title = article.get_text(strip=True)
     desc = desc_tag.get_text(strip=True) if desc_tag else ""
     hot = hot_tag.get_text(strip=True) if hot_tag else ""
@@ -32,7 +35,7 @@ for desc_tag,hot_tag, article in enumerate(articles, start=1):
     else:
         article_url = ""
     if title:
-        baidu_table.INSERT(title,article_url, "", "")
+        baidu_table.INSERT(title,article_url, desc, hot)
 
 baidu_table.SAVE("baidu_hot.json")
 
