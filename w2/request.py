@@ -1,42 +1,60 @@
 import requests
 from bs4 import BeautifulSoup
-from w1.sql import MySqlHelper
 from urllib.parse import urljoin
-url = "https://top.baidu.com/board?tab=realtime"
+from w1.sql import MySqlHelper
 
-headers = {
-    "User-Agent": "Mozilla/5.0"
-}
+class BaiduHotCrawler:
+    def __init__(self):
+        self.url = "https://top.baidu.com/board?tab=realtime"
+        self.headers = {
+            "User-Agent": "Mozilla/5.0"
+        }
 
-response = requests.get(url, headers=headers, timeout=10)
-response.raise_for_status()
+        self.table = MySqlHelper()
+        self.table.CREATE("title", "url", "desc", "hot")
 
-soup = BeautifulSoup(response.text, "html.parser")
+    def get_soup(self):
+        response = requests.get(
+            self.url,
+            headers=self.headers,
+            timeout=10
+        )
+        response.raise_for_status()
 
-baidu_table = MySqlHelper()
-baidu_table.CREATE("title","url", "desc", "hot")
+        return BeautifulSoup(response.text, "html.parser")
 
-articles = soup.find_all("div", class_="c-single-text-ellipsis")
-print(articles[0].find_parent("a").prettify())
-items = soup.select('a[class*="title_"][href]')
+    def parse(self, soup):
+        items = soup.select('a[class*="title_"][href]')
 
-for item in items:
-    article = item.select_one(".c-single-text-ellipsis")
+        for item in items:
+            article = item.select_one(".c-single-text-ellipsis")
 
-    if article is None:
-        continue
+            if article is None:
+                continue
 
-    title = article.get_text(strip=True)
-    article_url = urljoin(url, item["href"])
+            title = article.get_text(strip=True)
+            article_url = urljoin(self.url, item["href"])
 
-    container = item.find_parent("div")
-    desc_tag = container.select_one('[class*="hot-desc_"]')
-    hot_tag = container.select_one('[class*="hot-index_"]')
+            container = item.find_parent("div")
+            desc_tag = container.select_one('[class*="hot-desc_"]')
+            hot_tag = container.select_one('[class*="hot-index_"]')
 
-    desc = desc_tag.get_text(strip=True) if desc_tag else ""
-    hot = hot_tag.get_text(strip=True) if hot_tag else ""
+            desc = desc_tag.get_text(strip=True) if desc_tag else ""
+            hot = hot_tag.get_text(strip=True) if hot_tag else ""
 
-    baidu_table.INSERT(title, article_url, desc, hot)
-baidu_table.SAVE("baidu_hot.json")
+            self.table.INSERT(title, article_url, desc, hot)
 
-print(baidu_table.SELECT())
+    def save(self, filename):
+        self.table.SAVE(filename)
+
+    def run(self):
+        soup = self.get_soup()
+        self.parse(soup)
+        self.save("baidu_hot.json")
+
+        print(self.table.SELECT())
+
+
+if __name__ == "__main__":
+    crawler = BaiduHotCrawler()
+    crawler.run()
